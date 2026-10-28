@@ -8,7 +8,7 @@ in both languages; switch with the **VI / EN** buttons in the header.
 
 - **Luyện tập / Practice** – choose a topic (or all 10), pick 10 / 20 / 50 / all questions, and get instant feedback with an explanation after every answer.
 - **Kết quả / Results** – score, breakdown by topic, a review of every mistake, and one-click "retry missed questions".
-- **Ngân hàng câu hỏi / Question Bank** – browse all 200 questions with answers; search (Vietnamese search works with or without diacritics, e.g. `phan quyen`), filter by topic, or hide answers to test yourself.
+- **Danh sách câu hỏi / All Questions** – all 200 questions on one page, laid out like `dap-an.md` (contents table, numbered questions, options A–D). Answers stay hidden until you pick an option or press “Xem đáp án”; the page then shows “Đáp án đúng” and “Giải thích”.
 - Keyboard shortcuts (`1`–`4` / `A`–`D` to answer, `←` `→` to navigate), light/dark theme, mobile friendly.
 - The language can be switched at any time, even in the middle of a quiz.
 
@@ -32,6 +32,8 @@ then visit <http://localhost:8000>.
 | `styles.css`   | Styling (light and dark themes)                 |
 | `app.js`       | Quiz, results, question bank and UI text (VI/EN) |
 | `questions.js` | The 10 topics and 200 questions in both languages |
+| `dap-an.md`    | Printable answer key with explanations (Vietnamese) |
+| `cau-hoi.md`   | Printable question sheet without answers (Vietnamese) |
 
 ## Topics (20 questions each)
 

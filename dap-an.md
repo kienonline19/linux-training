@@ -1,7 +1,7 @@
 # Đáp án và giải thích – 200 câu hỏi trắc nghiệm Linux
 
 Tài liệu này tổng hợp **đáp án đúng** và **lời giải thích** cho toàn bộ 200 câu hỏi trong ứng dụng *Trắc nghiệm Linux*.
-Số thứ tự câu hỏi và thứ tự các phương án A–D trùng với mục *Ngân hàng câu hỏi* trên trang web.
+Số thứ tự câu hỏi và thứ tự các phương án A–D trùng với trang *Danh sách câu hỏi* trên trang web.
 
 > **Lưu ý:** khi làm bài với tùy chọn *Xáo trộn thứ tự câu hỏi*, thứ tự các câu thay đổi nhưng thứ tự phương án A–D của từng câu vẫn giữ nguyên.
 

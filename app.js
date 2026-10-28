@@ -5,6 +5,7 @@
   const LETTERS = ["A", "B", "C", "D"];
   const COUNT_CHOICES = [10, 20, 50];
   const TOPIC_BY_ID = Object.fromEntries(TOPICS.map((topic) => [topic.id, topic]));
+  const QUESTION_BY_ID = new Map(QUESTIONS.map((q) => [q.id, q]));
   const SETTINGS_KEY = "linux-quiz-settings";
   const THEME_KEY = "linux-quiz-theme";
   const LANG_KEY = "linux-quiz-lang";
@@ -15,7 +16,7 @@
     vi: {
       brand: "Trắc nghiệm Linux",
       navPractice: "Luyện tập",
-      navBank: "Ngân hàng câu hỏi",
+      navBank: "Danh sách câu hỏi",
       navBankShort: "Câu hỏi",
       footer: (q, n) => `${q} câu hỏi · ${n} chủ đề · có đáp án và giải thích`,
       langLabel: "Ngôn ngữ",
@@ -44,7 +45,9 @@
       skip: "Bỏ qua →",
       finish: "Nộp bài",
       correct: "Chính xác!",
-      notQuite: (letter) => `Chưa đúng. Đáp án đúng là ${letter}.`,
+      notQuite: "Chưa đúng.",
+      correctAnswer: (letter) => `Đáp án đúng: ${letter}`,
+      explanationLabel: "Giải thích:",
       srCorrect: "(đáp án đúng)",
       srYours: "(đáp án bạn chọn)",
       hint: "Phím tắt: nhấn <kbd>1</kbd>–<kbd>4</kbd> hoặc <kbd>A</kbd>–<kbd>D</kbd> để trả lời, <kbd>←</kbd> <kbd>→</kbd> để chuyển câu.",
@@ -77,23 +80,24 @@
       badgeWrong: "Sai",
       badgeSkipped: "Bỏ qua",
       yourAnswer: "Bạn chọn",
-      bankTitle: "Ngân hàng câu hỏi",
-      bankLead: (n) => `Toàn bộ ${n} câu hỏi kèm đáp án đúng và lời giải thích. Tắt “Hiện đáp án” để tự kiểm tra kiến thức.`,
-      searchPlaceholder: "Ví dụ: chmod, phân quyền",
-      searchLabel: "Tìm câu hỏi",
-      filterLabel: "Lọc theo chủ đề",
-      showAnswers: "Hiện đáp án",
-      showingAll: (n) => `Đang hiển thị toàn bộ ${n} câu hỏi`,
-      showing: (n) => `Đang hiển thị ${n} câu hỏi`,
-      noMatch: (q) => `Không có câu hỏi nào khớp với “${q}”.`,
-      showAnswer: "Hiện đáp án",
+      listTitle: (n) => `${n} câu hỏi trắc nghiệm Linux`,
+      listLead: "Mỗi câu hỏi có 4 phương án A–D và chỉ có một đáp án đúng. Đáp án được ẩn đi: hãy chọn một phương án để kiểm tra, hoặc nhấn “Xem đáp án”.",
+      toc: "Mục lục",
+      tocTopic: "Chủ đề",
+      tocRange: "Câu",
+      topicHeading: (n, name, a, b) => `${n}. ${name} (câu ${a}–${b})`,
+      questionNo: (id) => `Câu ${id}.`,
+      backToToc: "↑ Về mục lục",
+      listProgress: (a, n, c) => `Đã trả lời ${a}/${n} câu · đúng ${c} câu`,
+      resetAll: "Làm lại từ đầu",
+      showAnswer: "Xem đáp án",
       hideAnswer: "Ẩn đáp án",
       titleResults: (c, n) => `Kết quả: ${c}/${n}`,
     },
     en: {
       brand: "Linux Quiz",
       navPractice: "Practice",
-      navBank: "Question Bank",
+      navBank: "All Questions",
       navBankShort: "Questions",
       footer: (q, n) => `${q} questions · ${n} topics · answers and explanations included`,
       langLabel: "Language",
@@ -122,7 +126,9 @@
       skip: "Skip →",
       finish: "Finish quiz",
       correct: "Correct!",
-      notQuite: (letter) => `Not quite. The correct answer is ${letter}.`,
+      notQuite: "Not quite.",
+      correctAnswer: (letter) => `Correct answer: ${letter}`,
+      explanationLabel: "Explanation:",
       srCorrect: "(correct answer)",
       srYours: "(your answer)",
       hint: "Keyboard: <kbd>1</kbd>–<kbd>4</kbd> or <kbd>A</kbd>–<kbd>D</kbd> to answer, <kbd>←</kbd> <kbd>→</kbd> to move between questions.",
@@ -155,15 +161,16 @@
       badgeWrong: "Wrong",
       badgeSkipped: "Skipped",
       yourAnswer: "Your answer",
-      bankTitle: "Question Bank",
-      bankLead: (n) => `All ${n} questions with their correct answers and explanations. Turn off “Show answers” to test yourself.`,
-      searchPlaceholder: "Search, e.g. chmod or /etc",
-      searchLabel: "Search questions",
-      filterLabel: "Filter by topic",
-      showAnswers: "Show answers",
-      showingAll: (n) => `Showing all ${n} questions`,
-      showing: (n) => `Showing ${n} question${plural(n)}`,
-      noMatch: (q) => `No questions match “${q}”.`,
+      listTitle: (n) => `${n} Linux multiple-choice questions`,
+      listLead: "Each question has four options (A–D) and exactly one correct answer. Answers are hidden: pick an option to check yourself, or press “Show answer”.",
+      toc: "Contents",
+      tocTopic: "Topic",
+      tocRange: "Questions",
+      topicHeading: (n, name, a, b) => `${n}. ${name} (questions ${a}–${b})`,
+      questionNo: (id) => `Question ${id}.`,
+      backToToc: "↑ Back to contents",
+      listProgress: (a, n, c) => `Answered ${a} of ${n} · ${c} correct`,
+      resetAll: "Start over",
       showAnswer: "Show answer",
       hideAnswer: "Hide answer",
       titleResults: (c, n) => `Results: ${c}/${n}`,
@@ -173,7 +180,7 @@
   let lang = loadLang();
   let settings = loadSettings();
   let quiz = null; // { items, answers, current, topic, missed, finished, mapOpen }
-  const bank = { search: "", topic: "all", showAnswers: true };
+  const bankAnswers = new Map(); // question id -> chosen option index, or null when only revealed
 
   /* ---------- Storage ---------- */
 
@@ -237,11 +244,6 @@
   // Escape the text, then render `backtick` spans as inline code.
   function fmt(text) {
     return escapeHtml(text).replace(/`([^`]+)`/g, "<code>$1</code>");
-  }
-
-  // Lower-case and strip Vietnamese diacritics so "phan quyen" matches "phân quyền".
-  function normalize(text) {
-    return text.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
   }
 
   function shuffled(list) {
@@ -385,10 +387,11 @@
     window.scrollTo(0, 0);
   }
 
-  function optionButton(q, i, chosen) {
+  // `attr` names the data attribute the click handler routes on ("option" in the quiz, "pick" in the list).
+  function optionButton(q, i, { chosen = null, revealed = chosen !== null, attr = "option" } = {}) {
     let state = "";
     let mark = "";
-    if (chosen !== null) {
+    if (revealed) {
       if (i === q.answer) {
         state = "correct";
         mark = `<span class="mark" aria-hidden="true">✓</span><span class="sr-only">${tr("srCorrect")}</span>`;
@@ -400,18 +403,26 @@
       }
     }
     return `
-      <button type="button" class="option ${state}" data-option="${i}" ${chosen !== null ? "disabled" : ""}>
+      <button type="button" class="option ${state}" data-${attr}="${i}" ${revealed ? "disabled" : ""}>
         <span class="letter">${LETTERS[i]}</span>
         <span class="opt-text">${fmt(textOf(q).options[i])}</span>${mark}
       </button>`;
+  }
+
+  // "Correct answer: X – text" and "Explanation: …", as laid out in dap-an.md.
+  function answerLines(q) {
+    const content = textOf(q);
+    return `
+      <p><strong>${tr("correctAnswer", LETTERS[q.answer])}</strong> – ${fmt(content.options[q.answer])}</p>
+      <p><strong>${tr("explanationLabel")}</strong> ${fmt(content.explanation)}</p>`;
   }
 
   function feedback(q, chosen) {
     const ok = chosen === q.answer;
     return `
       <div class="feedback ${ok ? "ok" : "bad"}" id="feedback" role="status">
-        <p class="feedback-title">${ok ? tr("correct") : tr("notQuite", LETTERS[q.answer])}</p>
-        <p>${fmt(textOf(q).explanation)}</p>
+        <p class="feedback-title">${tr(ok ? "correct" : "notQuite")}</p>
+        ${answerLines(q)}
       </div>`;
   }
 
@@ -457,7 +468,7 @@
         </div>
         <h2 class="q-text" id="q-text" tabindex="-1">${fmt(textOf(q).question)}</h2>
         <div class="options" role="group" aria-labelledby="q-text">
-          ${q.en.options.map((_, i) => optionButton(q, i, chosen)).join("")}
+          ${q.en.options.map((_, i) => optionButton(q, i, { chosen })).join("")}
         </div>
         ${answered ? feedback(q, chosen) : ""}
       </article>
@@ -609,123 +620,133 @@
         .map((q, i) => ({ q, i, chosen: quiz.answers[i] }))
         .filter((r) => !onlyMistakes.checked || r.chosen !== r.q.answer);
       document.getElementById("review-list").innerHTML = rows.length
-        ? rows.map((r) => qCard(r.q, { label: tr("questionOf", r.i + 1, total), chosen: r.chosen, review: true })).join("")
+        ? rows.map((r) => qCard(r.q, { label: tr("questionOf", r.i + 1, total), chosen: r.chosen })).join("")
         : `<li class="card empty">${tr("noMistakes")}</li>`;
     };
     onlyMistakes.addEventListener("change", renderReview);
     renderReview();
   }
 
-  /* ---------- Question card (bank + review) ---------- */
+  /* ---------- Review card (results page) ---------- */
 
-  function qCard(q, { label, chosen = null, review = false, revealed = true, showTopic = true }) {
+  function qCard(q, { label, chosen }) {
     const content = textOf(q);
     const options = content.options.map((opt, i) => {
-      const classes = [i === q.answer ? "correct" : "", review && i === chosen && i !== q.answer ? "chosen-wrong" : ""];
+      const cls = i === q.answer ? "correct" : i === chosen ? "chosen-wrong" : "";
       const correctNote = i === q.answer
-        ? `<span class="mark" aria-hidden="true">✓</span><span class="sr-only correct-note">${tr("srCorrect")}</span>`
+        ? `<span class="mark" aria-hidden="true">✓</span><span class="sr-only">${tr("srCorrect")}</span>`
         : "";
       return `
-        <li class="${classes.join(" ").trim()}">
+        <li class="${cls}">
           <span class="letter">${LETTERS[i]}</span>
           <span class="opt-text">${fmt(opt)}</span>
-          ${review && i === chosen ? `<span class="your">${tr("yourAnswer")}</span>` : ""}${correctNote}
+          ${i === chosen ? `<span class="your">${tr("yourAnswer")}</span>` : ""}${correctNote}
         </li>`;
     }).join("");
 
-    let badge = "";
-    if (review) {
-      badge = chosen === null ? `<span class="badge skip">${tr("badgeSkipped")}</span>`
-        : chosen === q.answer ? `<span class="badge ok">${tr("badgeCorrect")}</span>`
-        : `<span class="badge bad">${tr("badgeWrong")}</span>`;
-    }
+    const badge = chosen === null ? `<span class="badge skip">${tr("badgeSkipped")}</span>`
+      : chosen === q.answer ? `<span class="badge ok">${tr("badgeCorrect")}</span>`
+      : `<span class="badge bad">${tr("badgeWrong")}</span>`;
 
     return `
-      <li class="qcard ${revealed ? "revealed" : ""}">
+      <li class="qcard">
         <div class="q-meta">
           <span>${escapeHtml(label)}</span>
-          <span>${showTopic ? `<span class="tag">${escapeHtml(topicName(q.topic))}</span> ` : ""}${badge}</span>
+          <span><span class="tag">${escapeHtml(topicName(q.topic))}</span> ${badge}</span>
         </div>
         <p class="q-text-sm">${fmt(content.question)}</p>
         <ol class="opt-list">${options}</ol>
-        <p class="explain">${fmt(content.explanation)}</p>
-        ${review ? "" : `<button type="button" class="link-btn reveal-btn" data-action="reveal" aria-expanded="${revealed}">${tr(revealed ? "hideAnswer" : "showAnswer")}</button>`}
+        <div class="answer-block">${answerLines(q)}</div>
       </li>`;
   }
 
-  /* ---------- Question bank ---------- */
+  /* ---------- Question list (same layout as dap-an.md, answers hidden until chosen) ---------- */
 
-  function renderBank() {
-    setTitle(tr("bankTitle"));
-    app.innerHTML = `
-      <section class="hero">
-        <h1>${tr("bankTitle")}</h1>
-        <p class="lead">${tr("bankLead", QUESTIONS.length)}</p>
-      </section>
-      <div class="card toolbar">
-        <input type="search" id="bank-search" class="input" placeholder="${tr("searchPlaceholder")}"
-          aria-label="${tr("searchLabel")}" value="${escapeHtml(bank.search)}">
-        <select id="bank-topic" class="input" aria-label="${tr("filterLabel")}">
-          <option value="all">${tr("allTopics")}</option>
-          ${TOPICS.map((topic) => `<option value="${topic.id}" ${bank.topic === topic.id ? "selected" : ""}>${escapeHtml(topic.name[lang])}</option>`).join("")}
-        </select>
-        <label class="check"><input type="checkbox" id="bank-answers" ${bank.showAnswers ? "checked" : ""}> ${tr("showAnswers")}</label>
-      </div>
-      <p class="muted count" id="bank-count" aria-live="polite"></p>
-      <div id="bank-list"></div>`;
-
-    document.getElementById("bank-search").addEventListener("input", (e) => {
-      bank.search = e.target.value;
-      renderBankList();
-    });
-    document.getElementById("bank-topic").addEventListener("change", (e) => {
-      bank.topic = e.target.value;
-      renderBankList();
-    });
-    document.getElementById("bank-answers").addEventListener("change", (e) => {
-      bank.showAnswers = e.target.checked;
-      renderBankList();
-    });
-    renderBankList();
+  function bankCard(q) {
+    const revealed = bankAnswers.has(q.id);
+    const chosen = revealed ? bankAnswers.get(q.id) : null;
+    return `
+      <li class="qcard" id="q-${q.id}" data-id="${q.id}">
+        <h3 class="q-text-sm">${tr("questionNo", q.id)} ${fmt(textOf(q).question)}</h3>
+        <div class="options">
+          ${q.en.options.map((_, i) => optionButton(q, i, { chosen, revealed, attr: "pick" })).join("")}
+        </div>
+        ${revealed ? `<div class="answer-block">${answerLines(q)}</div>` : ""}
+        <button type="button" class="link-btn reveal-btn" data-action="reveal" aria-expanded="${revealed}">${tr(revealed ? "hideAnswer" : "showAnswer")}</button>
+      </li>`;
   }
 
-  function renderBankList() {
-    const term = normalize(bank.search.trim());
-    const matches = questionsFor(bank.topic).filter((q) => {
-      if (!term) return true;
-      const { question, options, explanation } = textOf(q);
-      return normalize([question, explanation, ...options].join(" ").replace(/`/g, "")).includes(term);
+  function renderBank() {
+    setTitle(tr("navBank"));
+    const groups = TOPICS.map((topic) => {
+      const items = questionsFor(topic.id);
+      return { topic, items, first: items[0].id, last: items[items.length - 1].id };
     });
 
-    document.getElementById("bank-count").textContent = matches.length === QUESTIONS.length
-      ? tr("showingAll", QUESTIONS.length)
-      : tr("showing", matches.length);
+    app.innerHTML = `
+      <section class="hero">
+        <h1>${tr("listTitle", QUESTIONS.length)}</h1>
+        <p class="lead">${tr("listLead")}</p>
+      </section>
+      <section class="card toc" id="toc">
+        <h2 class="section-title">${tr("toc")}</h2>
+        <table class="toc-table">
+          <thead><tr><th>#</th><th>${tr("tocTopic")}</th><th>${tr("tocRange")}</th></tr></thead>
+          <tbody>
+            ${groups.map((g, n) => `
+              <tr>
+                <td>${n + 1}</td>
+                <td><a href="#/bank" data-jump="topic-${g.topic.id}">${escapeHtml(g.topic.name[lang])}</a></td>
+                <td>${g.first}–${g.last}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+        <p class="bank-progress" id="bank-progress" aria-live="polite"></p>
+      </section>
+      ${groups.map((g, n) => `
+        <section class="topic-group" id="topic-${g.topic.id}">
+          <h2 class="section-title">${escapeHtml(tr("topicHeading", n + 1, g.topic.name[lang], g.first, g.last))}</h2>
+          <ol class="qlist">${g.items.map(bankCard).join("")}</ol>
+          <a class="back-top" href="#/bank" data-jump="toc">${tr("backToToc")}</a>
+        </section>`).join("")}`;
+    updateBankProgress();
+  }
 
-    const list = document.getElementById("bank-list");
-    if (!matches.length) {
-      list.innerHTML = `<div class="card empty">${tr("noMatch", escapeHtml(bank.search.trim()))}</div>`;
-      return;
-    }
-    list.innerHTML = TOPICS.map((topic) => {
-      const group = matches.filter((q) => q.topic === topic.id);
-      if (!group.length) return "";
-      return `
-        <section class="topic-group">
-          <h2 class="section-title">${escapeHtml(topic.name[lang])} <span class="muted">${group.length}</span></h2>
-          <ol class="qlist">
-            ${group.map((q) => qCard(q, { label: `#${q.id}`, revealed: bank.showAnswers, showTopic: false })).join("")}
-          </ol>
-        </section>`;
-    }).join("");
+  function updateBankProgress() {
+    const picked = [...bankAnswers].filter(([, chosen]) => chosen !== null);
+    const correct = picked.filter(([id, chosen]) => QUESTION_BY_ID.get(id).answer === chosen).length;
+    document.getElementById("bank-progress").innerHTML =
+      tr("listProgress", picked.length, QUESTIONS.length, correct) +
+      (bankAnswers.size ? ` · <button type="button" class="link-btn" data-action="reset-bank">${tr("resetAll")}</button>` : "");
+  }
+
+  // Re-render a single card so the page keeps its scroll position.
+  function updateBankCard(id) {
+    document.getElementById(`q-${id}`).outerHTML = bankCard(QUESTION_BY_ID.get(id));
+    document.querySelector(`#q-${id} .reveal-btn`).focus({ preventScroll: true });
+    updateBankProgress();
   }
 
   /* ---------- Shared click handling ---------- */
 
   app.addEventListener("click", (event) => {
+    // Contents links scroll within the page instead of changing the #/route hash.
+    const jump = event.target.closest("a[data-jump]");
+    if (jump) {
+      event.preventDefault();
+      document.getElementById(jump.dataset.jump).scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
     const el = event.target.closest("button");
     if (!el) return;
     if (el.dataset.option !== undefined) return answer(Number(el.dataset.option));
     if (el.dataset.goto !== undefined) return showQuestion(Number(el.dataset.goto));
+    if (el.dataset.pick !== undefined) {
+      const id = Number(el.closest(".qcard").dataset.id);
+      bankAnswers.set(id, Number(el.dataset.pick));
+      return updateBankCard(id);
+    }
 
     switch (el.dataset.action) {
       case "quit": return quitQuiz();
@@ -735,11 +756,15 @@
       case "retry-mistakes": return startQuiz(mistakeItems(quiz), quiz.topic, true);
       case "retake": return startQuiz(settings.shuffle ? shuffled(quiz.items) : quiz.items.slice(), quiz.topic, quiz.missed);
       case "reveal": {
-        const card = el.closest(".qcard");
-        const open = card.classList.toggle("revealed");
-        el.textContent = tr(open ? "hideAnswer" : "showAnswer");
-        el.setAttribute("aria-expanded", String(open));
+        // Hiding also clears the chosen option, so the question can be tried again.
+        const id = Number(el.closest(".qcard").dataset.id);
+        if (bankAnswers.has(id)) bankAnswers.delete(id);
+        else bankAnswers.set(id, null);
+        return updateBankCard(id);
       }
+      case "reset-bank":
+        bankAnswers.clear();
+        return render();
     }
   });
 
